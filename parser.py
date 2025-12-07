@@ -10,7 +10,7 @@ API_BASE_URL = "http://localhost:8000/api"
 
 # 로그 파일 경로
 LOG_PATHS = {
-    "neverball": os.path.expanduser("~/.neverball/easy.txt"),
+    "neverball": os.path.expanduser("~/.neverball/Scores/easy.txt"),
     "supertux": os.path.expanduser("~/.local/share/supertux2/profile/world1.stsg"),
     "etr": os.path.expanduser("~/.config/etr/highscore")
 }
