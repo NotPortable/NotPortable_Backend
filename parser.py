@@ -15,11 +15,11 @@ LOG_PATHS = {
     "etr": os.path.expanduser("~/.config/etr/highscore")
 }
 
-# 마지막 처리 위치 저장
+# 마지막 처리 위치 저장 (None이면 처음부터 읽음)
 last_positions = {
-    "neverball": 0,
-    "supertux": 0,
-    "etr": 0
+    "neverball": None,
+    "supertux": None,
+    "etr": None
 }
 
 def parse_neverball_log(filepath):
@@ -33,11 +33,20 @@ def parse_neverball_log(filepath):
     
     # 새로운 라인만 처리
     global last_positions
-    new_lines = lines[last_positions["neverball"]:]
+    
+    # 처음 실행시 모든 라인 처리
+    if last_positions["neverball"] is None:
+        new_lines = lines
+        print(f"📖 Neverball: 전체 {len(lines)}줄 읽기")
+    else:
+        new_lines = lines[last_positions["neverball"]:]
+        if new_lines:
+            print(f"📖 Neverball: 새로운 {len(new_lines)}줄 읽기")
+    
     last_positions["neverball"] = len(lines)
     
     for line in new_lines:
-        # 예시: "jeonggoo 107 10000 187 05:23"
+        # 예시: "jungwoo 107 10000 187 05:23"
         match = re.match(r'(\S+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d:]+)', line.strip())
         if match:
             username, level, score, coins, time = match.groups()
@@ -47,7 +56,7 @@ def parse_neverball_log(filepath):
                 "score": int(score),
                 "coins": int(coins),
                 "time": time,
-                "is_anomaly": False  # C 코드에서 설정
+                "is_anomaly": False
             })
     
     return logs
@@ -62,11 +71,19 @@ def parse_supertux_log(filepath):
         lines = f.readlines()
     
     global last_positions
-    new_lines = lines[last_positions["supertux"]:]
+    
+    if last_positions["supertux"] is None:
+        new_lines = lines
+        print(f"📖 SuperTux: 전체 {len(lines)}줄 읽기")
+    else:
+        new_lines = lines[last_positions["supertux"]:]
+        if new_lines:
+            print(f"📖 SuperTux: 새로운 {len(new_lines)}줄 읽기")
+    
     last_positions["supertux"] = len(lines)
     
     for line in new_lines:
-        # 예시: "jeonggoo world1-3 156 2 142.8"
+        # 예시: "jungwoo world1-3 156 2 142.8"
         match = re.match(r'(\S+)\s+([\w-]+)\s+(\d+)\s+(\d+)\s+([\d.]+)', line.strip())
         if match:
             username, level, coins, secrets, time = match.groups()
@@ -91,11 +108,19 @@ def parse_etr_log(filepath):
         lines = f.readlines()
     
     global last_positions
-    new_lines = lines[last_positions["etr"]:]
+    
+    if last_positions["etr"] is None:
+        new_lines = lines
+        print(f"📖 ETR: 전체 {len(lines)}줄 읽기")
+    else:
+        new_lines = lines[last_positions["etr"]:]
+        if new_lines:
+            print(f"📖 ETR: 새로운 {len(new_lines)}줄 읽기")
+    
     last_positions["etr"] = len(lines)
     
     for line in new_lines:
-        # 예시: "jeonggoo Easy_Run 8562 23 02:15.32"
+        # 예시: "jungwoo Easy_Run 8562 23 02:15.32"
         match = re.match(r'(\S+)\s+([\w_]+)\s+(\d+)\s+(\d+)\s+([\d:.]+)', line.strip())
         if match:
             username, course, score, herring, time = match.groups()
