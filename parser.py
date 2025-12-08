@@ -318,9 +318,10 @@ def parse_etr_log(filepath):
         return []
 
 def send_to_api(game, logs):
-    """API로 로그 전송"""
+    """API로 로그 전송 (중복 체크 포함)"""
     success_count = 0
     anomaly_count = 0
+    duplicate_count = 0
     
     for log in logs:
         try:
@@ -329,13 +330,19 @@ def send_to_api(game, logs):
                 success_count += 1
                 if log.get('is_anomaly'):
                     anomaly_count += 1
+            elif response.status_code == 409:  # Conflict - 중복
+                duplicate_count += 1
             else:
                 print(f"❌ [{game}] API 오류: {response.status_code}")
         except Exception as e:
             print(f"❌ [{game}] 전송 실패: {e}")
     
-    if success_count > 0:
-        status = f"✅ [{game}] {success_count}개 기록 저장 완료"
+    if success_count > 0 or duplicate_count > 0:
+        status = f"✅ [{game}]"
+        if success_count > 0:
+            status += f" {success_count}개 신규 저장"
+        if duplicate_count > 0:
+            status += f" ({duplicate_count}개 중복 제외)"
         if anomaly_count > 0:
             status += f" (🚨 이상 데이터 {anomaly_count}개)"
         print(status)

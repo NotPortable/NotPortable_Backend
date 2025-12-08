@@ -159,6 +159,17 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
 # Neverball 로그 추가
 @app.post("/api/neverball/log")
 async def add_neverball_log(data: NeverballData, db: Session = Depends(get_db)):
+    # 중복 체크: username, score, coins, time 조합
+    existing = db.query(NeverballLog).filter(
+        NeverballLog.username == data.username,
+        NeverballLog.score == data.score,
+        NeverballLog.coins == data.coins,
+        NeverballLog.time == data.time
+    ).first()
+    
+    if existing:
+        return {"success": False, "message": "중복 기록", "id": existing.id}
+    
     log = NeverballLog(**data.dict())
     db.add(log)
     db.commit()
@@ -225,6 +236,18 @@ async def get_neverball_user_stats(username: str, db: Session = Depends(get_db))
 # SuperTux 로그 추가
 @app.post("/api/supertux/log")
 async def add_supertux_log(data: SuperTuxData, db: Session = Depends(get_db)):
+    # 중복 체크: username, level, coins, secrets, time 조합
+    existing = db.query(SuperTuxLog).filter(
+        SuperTuxLog.username == data.username,
+        SuperTuxLog.level == data.level,
+        SuperTuxLog.coins == data.coins,
+        SuperTuxLog.secrets == data.secrets,
+        SuperTuxLog.time == data.time
+    ).first()
+    
+    if existing:
+        return {"success": False, "message": "중복 기록", "id": existing.id}
+    
     log = SuperTuxLog(**data.dict())
     db.add(log)
     db.commit()
@@ -287,6 +310,18 @@ async def get_supertux_user_stats(username: str, db: Session = Depends(get_db)):
 # ETR 로그 추가
 @app.post("/api/etr/log")
 async def add_etr_log(data: ETRData, db: Session = Depends(get_db)):
+    # 중복 체크: username, course, score, herring, time 조합
+    existing = db.query(ETRLog).filter(
+        ETRLog.username == data.username,
+        ETRLog.course == data.course,
+        ETRLog.score == data.score,
+        ETRLog.herring == data.herring,
+        ETRLog.time == data.time
+    ).first()
+    
+    if existing:
+        return {"success": False, "message": "중복 기록", "id": existing.id}
+    
     log = ETRLog(**data.dict())
     db.add(log)
     db.commit()
