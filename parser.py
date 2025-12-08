@@ -37,6 +37,13 @@ sensor_state = {
     "check_interval": 2.0  # 2초마다 체크
 }
 
+# 마지막 처리 시간
+last_processed = {
+    "neverball": None,
+    "supertux": None,
+    "etr": None
+}
+
 def init_sensor():
     """초음파 센서 초기화"""
     if not SENSOR_AVAILABLE:
@@ -153,7 +160,6 @@ def check_anomaly():
     
     return False
 
-def parse_neverball_log(filepath):
     """
     Neverball 로그 파싱
     형식: 2695 11 jungwooD
