@@ -160,30 +160,6 @@ def check_anomaly():
     
     return False
 
-def get_latest_replay():
-    """가장 최근 Neverball 리플레이 파일 이름 가져오기 (자동 백업)"""
-    replay_dir = os.path.expanduser("~/.neverball/Replays/")
-    last_replay = os.path.join(replay_dir, "Last.nbr")
-    
-    if not os.path.exists(last_replay):
-        return None
-    
-    try:
-        # Last.nbr을 타임스탬프 이름으로 복사
-        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        new_filename = f"replay-{timestamp}.nbr"
-        new_path = os.path.join(replay_dir, new_filename)
-        
-        import shutil
-        shutil.copy2(last_replay, new_path)
-        print(f"   🎬 리플레이 백업: {new_filename}")
-        
-        return new_filename
-    except Exception as e:
-        print(f"⚠️  리플레이 복사 오류: {e}")
-        return "Last.nbr"
-
-def parse_neverball_log(filepath):
     """
     Neverball 로그 파싱
     형식: 2695 11 jungwooD
@@ -195,13 +171,11 @@ def parse_neverball_log(filepath):
     
     logs = []
     current_level = "Unknown"
+    seen_records = set()  # 중복 체크용
     
     try:
         with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
             lines = f.readlines()
-        
-        # 가장 최근 리플레이 파일 가져오기
-        replay_file = get_latest_replay()
         
         for line in lines:
             line = line.strip()
@@ -223,6 +197,12 @@ def parse_neverball_log(filepath):
                     seconds = int(time_sec % 60)
                     time_str = f"{minutes:02d}:{seconds:02d}"
                     
+                    # 중복 체크 (username, score, coins 조합으로)
+                    record_key = (username, int(time_ms), int(coins))
+                    if record_key in seen_records:
+                        continue
+                    seen_records.add(record_key)
+                    
                     # 센서로 이상 감지
                     is_anomaly = check_anomaly()
                     
@@ -232,13 +212,10 @@ def parse_neverball_log(filepath):
                         "score": int(time_ms),
                         "coins": int(coins),
                         "time": time_str,
-                        "is_anomaly": is_anomaly,
-                        "replay_filename": replay_file
+                        "is_anomaly": is_anomaly
                     })
         
         print(f"📖 Neverball: {len(logs)}개 기록 발견")
-        if replay_file:
-            print(f"   🎬 리플레이: {replay_file}")
         return logs
     
     except Exception as e:
