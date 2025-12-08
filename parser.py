@@ -161,23 +161,27 @@ def check_anomaly():
     return False
 
 def get_latest_replay():
-    """가장 최근 Neverball 리플레이 파일 이름 가져오기"""
+    """가장 최근 Neverball 리플레이 파일 이름 가져오기 (자동 백업)"""
     replay_dir = os.path.expanduser("~/.neverball/Replays/")
+    last_replay = os.path.join(replay_dir, "Last.nbr")
     
-    if not os.path.exists(replay_dir):
+    if not os.path.exists(last_replay):
         return None
     
     try:
-        replays = [f for f in os.listdir(replay_dir) if f.endswith('.nbr')]
-        if not replays:
-            return None
+        # Last.nbr을 타임스탬프 이름으로 복사
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        new_filename = f"replay-{timestamp}.nbr"
+        new_path = os.path.join(replay_dir, new_filename)
         
-        # 가장 최근 파일
-        latest = max(replays, key=lambda f: os.path.getmtime(os.path.join(replay_dir, f)))
-        return latest
+        import shutil
+        shutil.copy2(last_replay, new_path)
+        print(f"   🎬 리플레이 백업: {new_filename}")
+        
+        return new_filename
     except Exception as e:
-        print(f"⚠️  리플레이 파일 검색 오류: {e}")
-        return None
+        print(f"⚠️  리플레이 복사 오류: {e}")
+        return "Last.nbr"
 
 def parse_neverball_log(filepath):
     """
