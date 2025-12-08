@@ -37,6 +37,13 @@ sensor_state = {
     "check_interval": 2.0  # 2초마다 체크
 }
 
+# 마지막 처리 시간
+last_processed = {
+    "neverball": None,
+    "supertux": None,
+    "etr": None
+}
+
 def init_sensor():
     """초음파 센서 초기화"""
     if not SENSOR_AVAILABLE:
@@ -153,7 +160,6 @@ def check_anomaly():
     
     return False
 
-def parse_neverball_log(filepath):
     """
     Neverball 로그 파싱
     형식: 2695 11 jungwooD
@@ -231,18 +237,11 @@ def parse_supertux_log(filepath):
         level_pattern = r'\("([^"]+\.stl)"\s+\(perfect\s+[^)]+\)\s+\("statistics"[^)]+\(coins-collected\s+(\d+)\)[^)]+\(secrets-found\s+(\d+)\)[^)]+\(time-needed\s+([\d.]+)\)'
         matches = re.finditer(level_pattern, content, re.DOTALL)
         
-        # 사용자 이름 가져오기 (C 런처에서 저장한 파일)
-        username = "Player"
-        username_file = "/tmp/supertux_username.txt"
-        if os.path.exists(username_file):
-            try:
-                with open(username_file, 'r') as f:
-                    saved_name = f.read().strip()
-                    if saved_name:
-                        username = saved_name
-                        print(f"   👤 사용자: {username}")
-            except:
-                pass
+        # 랜덤 사용자명 생성 (파서 실행마다 다름)
+        import random
+        import string
+        random_suffix = ''.join(random.choices(string.ascii_letters + string.digits, k=6))
+        username = f"Player_{random_suffix}"
         
         for match in matches:
             level_name, coins, secrets, time = match.groups()
