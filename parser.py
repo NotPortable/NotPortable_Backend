@@ -231,7 +231,11 @@ def parse_supertux_log(filepath):
         level_pattern = r'\("([^"]+\.stl)"\s+\(perfect\s+[^)]+\)\s+\("statistics"[^)]+\(coins-collected\s+(\d+)\)[^)]+\(secrets-found\s+(\d+)\)[^)]+\(time-needed\s+([\d.]+)\)'
         matches = re.finditer(level_pattern, content, re.DOTALL)
         
-        username = "Player"
+        # 랜덤 사용자명 생성 (파서 실행마다 다름)
+        import random
+        import string
+        random_suffix = ''.join(random.choices(string.ascii_letters + string.digits, k=6))
+        username = f"Player_{random_suffix}"
         
         for match in matches:
             level_name, coins, secrets, time = match.groups()
@@ -249,7 +253,8 @@ def parse_supertux_log(filepath):
                 "is_anomaly": is_anomaly
             })
         
-        print(f"📖 SuperTux: {len(logs)}개 기록 발견")
+        if logs:
+            print(f"📖 SuperTux: {len(logs)}개 기록 발견 (사용자: {username})")
         return logs
     
     except Exception as e:
