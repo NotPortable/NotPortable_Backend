@@ -160,6 +160,25 @@ def check_anomaly():
     
     return False
 
+def get_latest_replay():
+    """가장 최근 Neverball 리플레이 파일 이름 가져오기"""
+    replay_dir = os.path.expanduser("~/.neverball/Replays/")
+    
+    if not os.path.exists(replay_dir):
+        return None
+    
+    try:
+        replays = [f for f in os.listdir(replay_dir) if f.endswith('.nbr')]
+        if not replays:
+            return None
+        
+        # 가장 최근 파일
+        latest = max(replays, key=lambda f: os.path.getmtime(os.path.join(replay_dir, f)))
+        return latest
+    except Exception as e:
+        print(f"⚠️  리플레이 파일 검색 오류: {e}")
+        return None
+
 def parse_neverball_log(filepath):
     """
     Neverball 로그 파싱
@@ -176,6 +195,9 @@ def parse_neverball_log(filepath):
     try:
         with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
             lines = f.readlines()
+        
+        # 가장 최근 리플레이 파일 가져오기
+        replay_file = get_latest_replay()
         
         for line in lines:
             line = line.strip()
@@ -206,10 +228,13 @@ def parse_neverball_log(filepath):
                         "score": int(time_ms),
                         "coins": int(coins),
                         "time": time_str,
-                        "is_anomaly": is_anomaly
+                        "is_anomaly": is_anomaly,
+                        "replay_filename": replay_file
                     })
         
         print(f"📖 Neverball: {len(logs)}개 기록 발견")
+        if replay_file:
+            print(f"   🎬 리플레이: {replay_file}")
         return logs
     
     except Exception as e:

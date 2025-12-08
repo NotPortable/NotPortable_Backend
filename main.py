@@ -39,6 +39,7 @@ class NeverballLog(Base):
     coins = Column(Integer)
     time = Column(String(20))
     is_anomaly = Column(Boolean, default=False)
+    replay_filename = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=datetime.now)
 
 class SuperTuxLog(Base):
@@ -76,6 +77,7 @@ class NeverballData(BaseModel):
     coins: int
     time: str
     is_anomaly: bool = False
+    replay_filename: Optional[str] = None
 
 class SuperTuxData(BaseModel):
     username: str
@@ -152,6 +154,7 @@ async def get_neverball_ranking(limit: int = 10, db: Session = Depends(get_db)):
             "coins": log.coins,
             "time": log.time,
             "is_anomaly": log.is_anomaly,
+            "replay_filename": log.replay_filename,
             "created_at": log.created_at.isoformat()
         })
     
@@ -329,6 +332,68 @@ async def get_anomalies(db: Session = Depends(get_db)):
         "supertux": [{"username": log.username, "coins": log.coins, "created_at": log.created_at.isoformat()} for log in supertux_anomalies],
         "etr": [{"username": log.username, "score": log.score, "created_at": log.created_at.isoformat()} for log in etr_anomalies]
     }
+
+# 리플레이 파일 다운로드
+@app.get("/api/neverball/replay/{filename}")
+async def download_replay(filename: str):
+    """Neverball 리플레이 파일 다운로드"""
+    from fastapi.responses import FileResponse
+    import os
+    
+    # 보안: 경로 traversal 방지
+    if ".." in filename or "/" in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    
+    replay_path = os.path.expanduser(f"~/.neverball/Replays/{filename}")
+    
+    if not os.path.exists(replay_path):
+        raise HTTPException(status_code=404, detail="리플레이 파일을 찾을 수 없습니다")
+    
+    return FileResponse(
+        path=replay_path,
+        filename=filename,
+        media_type="application/octet-stream"
+    )
+
+# 리플레이 스트리밍 (웹에서 직접 재생)
+@app.get("/api/neverball/replay/stream/{filename}")
+async def stream_replay(filename: str):
+    """Neverball 리플레이 정보 반환 (웹 뷰어용)"""
+    import os
+    
+    if ".." in filename or "/" in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    
+    replay_path = os.path.expanduser(f"~/.neverball/Replays/{filename}")
+    
+    if not os.path.exists(replay_path):
+        raise HTTPException(status_code=404, detail="리플레이 파일을 찾을 수 없습니다")
+    
+    # 리플레이 파일 메타데이터 추출
+    try:
+        with open(replay_path, 'rb') as f:
+            header = f.read(100).decode('latin-1', errors='ignore')
+            
+            # NBR 헤더에서 정보 추출 (간단 버전)
+            info = {
+                "filename": filename,
+                "size": os.path.getsize(replay_path),
+                "player": "Unknown",
+                "date": "Unknown",
+                "map": "Unknown"
+            }
+            
+            # 헤더 파싱 시도
+            if "NBR" in header:
+                parts = header.split('\x00')
+                if len(parts) > 1:
+                    info["player"] = parts[1] if len(parts[1]) > 0 else "Unknown"
+                if len(parts) > 2:
+                    info["date"] = parts[2] if len(parts[2]) > 0 else "Unknown"
+            
+            return info
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"리플레이 파일 읽기 실패: {str(e)}")
 
 # 헬스 체크
 @app.get("/")
