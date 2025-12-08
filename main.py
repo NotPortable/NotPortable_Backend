@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Boolean
@@ -12,32 +12,6 @@ import re
 
 # FastAPI 앱
 app = FastAPI(title="NotPortable API", version="1.0.0")
-
-# WebSocket 연결 관리
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: List[WebSocket] = []
-        self.message_history: List[dict] = []
-        
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-        
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
-        
-    async def broadcast(self, message: dict):
-        self.message_history.append(message)
-        if len(self.message_history) > 50:
-            self.message_history.pop(0)
-            
-        for connection in self.active_connections:
-            await connection.send_json(message)
-    
-    def get_connection_count(self):
-        return len(self.active_connections)
-
-manager = ConnectionManager()
 
 # CORS 설정
 app.add_middleware(
@@ -425,45 +399,6 @@ async def stream_replay(filename: str):
 @app.get("/")
 async def root():
     return {"status": "ok", "message": "NotPortable API"}
-
-# WebSocket 채팅
-@app.websocket("/ws/chat")
-async def websocket_chat(websocket: WebSocket):
-    await manager.connect(websocket)
-    
-    # 접속 시 기존 메시지 히스토리 전송
-    for msg in manager.message_history:
-        await websocket.send_json(msg)
-    
-    # 접속자 수 브로드캐스트
-    await manager.broadcast({
-        "type": "system",
-        "message": f"현재 접속자: {manager.get_connection_count()}명",
-        "timestamp": datetime.now().strftime("%H:%M:%S")
-    })
-    
-    try:
-        while True:
-            # 클라이언트로부터 메시지 수신
-            data = await websocket.receive_json()
-            
-            # 메시지 브로드캐스트
-            message = {
-                "type": "message",
-                "username": data.get("username", "익명"),
-                "message": data.get("message", ""),
-                "timestamp": datetime.now().strftime("%H:%M:%S")
-            }
-            await manager.broadcast(message)
-            
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
-        # 접속자 수 업데이트
-        await manager.broadcast({
-            "type": "system",
-            "message": f"현재 접속자: {manager.get_connection_count()}명",
-            "timestamp": datetime.now().strftime("%H:%M:%S")
-        })
 
 if __name__ == "__main__":
     import uvicorn
